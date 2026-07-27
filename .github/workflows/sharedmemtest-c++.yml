@@ -39,6 +39,6 @@ jobs:
           cd clients/python && checkShMem=$(python3 umbridge-client.py http://model:4242 | grep -o "not accessible"); echo "CheckShMem=$checkShMem" >> $GITHUB_ENV
        - 
         name: Check if Shared Memory is used
-        if: $CheckShMem == 'not accessible'
+        if: env.CheckShMem == 'not accessible'
         run: |
-            cat $GITHUB_ENV ; echo "Shared Memory not available, failed"; exit 1
+            cat $GITHUB_ENV ; echo $CheckShMem ; echo "Shared Memory not available, failed"; exit 1
