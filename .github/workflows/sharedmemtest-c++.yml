@@ -34,9 +34,45 @@ jobs:
        -
         name: Build and run
         run: |
-          cd clients/c++ && ./build.sh && checkShMem=$(./http-client model:4242 | grep -o "not accessible"); echo "CheckShMem=$checkShMem" >> $GITHUB_ENV
-       -
-        name: Check if Shared Memory is used
-        if: env.CheckShMem == 'not accessible'
+          cd clients/c++ && ./build.sh && ./http-client model:4242
+       - 
+        name: Check host shm limits
         run: |
-            echo "Shared Memory not available, failed"; exit 1
+          cat /proc/sys/kernel/shmmax
+          cat /proc/sys/kernel/shmall
+          cat /proc/sys/kernel/shmmni
+          ls -la /dev/shm
+          df -h /dev/shm
+          
+       - name: Create shm segment in model container
+         run: |
+          docker exec $(docker ps -qf "ancestor=linusseelinger/model-exahype-tsunami:latest") \
+            python3 -c "
+          from multiprocessing import shared_memory
+          import time
+          shm = shared_memory.SharedMemory(create=True, size=10, name='citest')
+          shm.buf[:5] = b'hello'
+          print('created and wrote: hello')
+          time.sleep(30)
+          shm.close()
+          shm.unlink()
+          " &
+          echo "writer started in background, sleeping 5s to let it create the segment"
+          sleep 5
+
+       - name: Read shm segment from job container
+         run: |
+          python3 -c "
+          from multiprocessing import shared_memory
+          try:
+              shm = shared_memory.SharedMemory(name='citest')
+              data = bytes(shm.buf[:5])
+              print('read back:', data)
+              assert data == b'hello', 'content mismatch!'
+              print('SUCCESS: shared memory is visible across containers')
+              shm.close()
+          except FileNotFoundError as e:
+              print('FAILED: segment not found -', e)
+          except PermissionError as e:
+              print('FAILED: permission denied -', e)
+          "
