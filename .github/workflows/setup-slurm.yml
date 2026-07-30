@@ -1,0 +1,46 @@
+name: slurm-ci
+
+on: push
+
+jobs:
+  test-on-slurm:
+    runs-on: ubuntu-latest
+    container: 
+      image: ubuntu:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone and build the Slurm image
+        run: |
+          git clone --depth 1 https://github.com/giovtorres/slurm-docker.git slurm-docker
+          docker build \
+            --build-arg SLURM_VERSION=25.11.4 \
+            --build-arg ROCKY_VERSION=10 \
+            -t slurm-test:local \
+            slurm-docker
+
+      - name: Start the container
+        run: |
+          docker run -d \
+            --name slurm \
+            --cap-add sys_admin \
+            -v ${{ github.workspace }}:/data \
+            slurm-test:local
+
+      - name: Wait for Slurm to be ready
+        run: |
+          for i in $(seq 1 60); do
+            docker exec slurm scontrol ping 2>/dev/null | grep -q UP && break
+            sleep 1
+          done
+          docker exec slurm sinfo
+
+      - name: Submit and wait on a job
+        run: docker exec -w /data slurm srun hostname
+
+      - name: Check accounting
+        run: docker exec slurm sacct --format=JobID,JobName,State,ExitCode,Elapsed
+
+      - name: Tear down
+        if: always()
+        run: docker rm -f slurm
