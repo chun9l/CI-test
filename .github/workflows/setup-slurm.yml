@@ -5,8 +5,7 @@ on: push
 jobs:
   test-on-slurm:
     runs-on: ubuntu-latest
-    container: 
-      image: ubuntu:latest
+
     steps:
       - uses: actions/checkout@v4
 
