@@ -12,17 +12,20 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
 
-      - name: Start Slurm daemons
+      - name: Check SLURM daemons are running
         run: |
          nohup /usr/local/bin/docker-entrypoint.sh > /tmp/entrypoint.log 2>&1 &
           for i in $(seq 1 60); do
             scontrol ping 2>/dev/null | grep -q UP && break
             sleep 5
           done
-          sinfo 
-          scontrol show nodes
-
-      - name: Submit a job
-        run: srun -p normal hostname
+          
+      - name: Clone UM-Bridge and run loadbalancer test
+        run: |
+         python3 -m venv venv && . venv/bin/activate && pip3 install umbridge
+         git clone https://github.com/UM-Bridge/umbridge.git && cd umbridge/hpc && make 
+         ./loadbalancer --scheduler=slurm &
+         sleep 20 && 
+         python3 test/minimal/minimal-client.py
