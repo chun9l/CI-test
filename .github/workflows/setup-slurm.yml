@@ -35,7 +35,7 @@ jobs:
           docker exec slurm sinfo
 
       - name: Submit and wait on a job
-        run: docker exec -w /data slurm srun hostname
+        run: docker exec -w /data slurm srun -p normal hostname
 
       - name: Check accounting
         run: docker exec slurm sacct --format=JobID,JobName,State,ExitCode,Elapsed
