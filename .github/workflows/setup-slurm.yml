@@ -28,6 +28,6 @@ jobs:
          python3 -m venv venv && . venv/bin/activate && pip3 install umbridge
          git clone https://github.com/UM-Bridge/umbridge.git && cd umbridge/hpc && make 
          sed -i -e 's|^--partition=devel|--partition=normal|' slurm_scripts/job.sh
-         ./loadbalancer --scheduler=slurm &
+         ./load-balancer --scheduler=slurm &
          sleep 20 && 
          python3 test/minimal/minimal-client.py
