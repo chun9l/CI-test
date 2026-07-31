@@ -24,7 +24,7 @@ jobs:
           
       - name: Clone UM-Bridge and run loadbalancer test
         run: |
-         dnf -y install gcc-c++
+         dnf -y install gcc-g++ libstdc++-static
          python3 -m venv venv && . venv/bin/activate && pip3 install umbridge
          git clone https://github.com/UM-Bridge/umbridge.git && cd umbridge/hpc && make 
          sed -i -e 's|^--partition=devel|--partition=normal|' slurm_scripts/job.sh
